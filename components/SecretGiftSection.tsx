@@ -21,6 +21,16 @@ export default function SecretGiftSection() {
       .catch(() => {});
   }, []);
 
+  // A13: Explicit server-side session termination on "Đổi người"
+  const handleResetSession = async () => {
+    try {
+      await fetch("/api/me/reset", { method: "POST" });
+    } catch (e) {
+      console.warn("Failed to reset session cookie:", e);
+    }
+    setActiveGift(null);
+  };
+
   return (
     <section id="secret-gift" className="relative py-20 px-4 scroll-mt-6">
       <div className="max-w-4xl mx-auto text-center space-y-4">
@@ -50,7 +60,7 @@ export default function SecretGiftSection() {
 
             <EnvelopeReveal
               gift={activeGift}
-              onReset={() => setActiveGift(null)}
+              onReset={handleResetSession}
             />
           </div>
         )}

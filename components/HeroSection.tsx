@@ -48,7 +48,7 @@ export default function HeroSection({ onScrollToGift }: HeroSectionProps) {
         <div className="pt-6">
           <button
             onClick={onScrollToGift}
-            className="group relative inline-flex items-center gap-3 px-8 py-4 rounded-full bg-dusty text-ivory font-medium shadow-vintage hover:bg-dusty-dark transition-all duration-300 transform hover:-translate-y-0.5 active:translate-y-0"
+            className="group relative inline-flex items-center gap-3 px-8 py-4 rounded-full bg-dusty-deep text-ivory font-medium shadow-vintage hover:bg-dusty-deeper transition-all duration-300 transform hover:-translate-y-0.5 active:translate-y-0"
           >
             <span className="tracking-wide">Khám phá món quà của mình</span>
             <ArrowDown className="w-4 h-4 transition-transform group-hover:translate-y-1" />

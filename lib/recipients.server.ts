@@ -1,9 +1,9 @@
 import fs from "fs";
 import path from "path";
-import { RecipientConfig, RecipientPublicGift } from "@/types/recipient";
+import { RecipientConfig, RecipientPublicGift } from "../types/recipient";
 import { isNameMatch, hashInviteCode } from "./validation";
 
-// Safe sample fallback if no secret config exists (e.g. initial public build / CI)
+// Safe sample fallback strictly for isolated test/dev environments without private configuration
 const FALLBACK_RECIPIENTS: RecipientConfig[] = [
   {
     id: "DEMO01",
@@ -24,6 +24,75 @@ const FALLBACK_RECIPIENTS: RecipientConfig[] = [
 
 let cachedRecipients: RecipientConfig[] | null = null;
 
+export function clearRecipientsCache(): void {
+  cachedRecipients = null;
+}
+
+export function validateRecipients(list: any[]): RecipientConfig[] {
+  if (!Array.isArray(list) || list.length === 0) {
+    throw new Error("Invalid recipients configuration: expected non-empty array.");
+  }
+
+  const seenIds = new Set<string>();
+
+  for (let i = 0; i < list.length; i++) {
+    const r = list[i];
+    if (!r || typeof r !== "object") {
+      throw new Error(`Invalid recipient item at index ${i}`);
+    }
+
+    if (!r.id || typeof r.id !== "string" || !/^[A-Za-z0-9_-]{1,32}$/.test(r.id)) {
+      throw new Error(`Recipient at index ${i} has invalid ID: ${r.id}`);
+    }
+
+    if (seenIds.has(r.id)) {
+      throw new Error(`Duplicate recipient ID found: ${r.id}`);
+    }
+    seenIds.add(r.id);
+
+    if (!r.fullName || typeof r.fullName !== "string") {
+      throw new Error(`Recipient ${r.id} missing valid fullName`);
+    }
+
+    if (!r.displayName || typeof r.displayName !== "string") {
+      throw new Error(`Recipient ${r.id} missing valid displayName`);
+    }
+
+    if (
+      !r.birthDate ||
+      typeof r.birthDate !== "object" ||
+      typeof r.birthDate.day !== "number" ||
+      typeof r.birthDate.month !== "number" ||
+      r.birthDate.day < 1 ||
+      r.birthDate.day > 31 ||
+      r.birthDate.month < 1 ||
+      r.birthDate.month > 12
+    ) {
+      throw new Error(`Recipient ${r.id} has invalid birthDate`);
+    }
+
+    if (r.birthDate.year !== null && typeof r.birthDate.year !== "number") {
+      throw new Error(`Recipient ${r.id} birthDate.year must be number or null`);
+    }
+
+    const validModes = ["BIRTHDAY", "INVITE_CODE", "BOTH"];
+    if (!r.accessMode || !validModes.includes(r.accessMode)) {
+      throw new Error(`Recipient ${r.id} has invalid accessMode: ${r.accessMode}`);
+    }
+
+    if (!r.flower || !r.theme || !r.meaning || !r.letter) {
+      throw new Error(`Recipient ${r.id} missing required content fields`);
+    }
+
+    const validCardVariants = ["STANDARD", "SPECIAL_LEADER"];
+    if (r.cardVariant && !validCardVariants.includes(r.cardVariant)) {
+      throw new Error(`Recipient ${r.id} has invalid cardVariant: ${r.cardVariant}`);
+    }
+  }
+
+  return list as RecipientConfig[];
+}
+
 export async function getAllRecipients(): Promise<RecipientConfig[]> {
   if (cachedRecipients) return cachedRecipients;
 
@@ -32,7 +101,6 @@ export async function getAllRecipients(): Promise<RecipientConfig[]> {
   if (envData) {
     try {
       let rawJson = envData;
-      // Handle base64 encoded JSON string if used
       if (!envData.trim().startsWith("[")) {
         try {
           rawJson = Buffer.from(envData, "base64").toString("utf-8");
@@ -41,12 +109,14 @@ export async function getAllRecipients(): Promise<RecipientConfig[]> {
         }
       }
       const parsed = JSON.parse(rawJson);
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        cachedRecipients = parsed;
-        return parsed;
-      }
+      const validated = validateRecipients(parsed);
+      cachedRecipients = validated;
+      return validated;
     } catch (e) {
-      console.error("Failed to parse RECIPIENTS_JSON environment variable", e);
+      console.error("Failed to parse/validate RECIPIENTS_JSON environment variable", e);
+      if (process.env.NODE_ENV === "production") {
+        throw new Error("Production error: Failed to parse valid RECIPIENTS_JSON. Failing closed.");
+      }
     }
   }
 
@@ -56,13 +126,20 @@ export async function getAllRecipients(): Promise<RecipientConfig[]> {
     try {
       const fileData = fs.readFileSync(privateFilePath, "utf-8");
       const parsed = JSON.parse(fileData);
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        cachedRecipients = parsed;
-        return parsed;
-      }
+      const validated = validateRecipients(parsed);
+      cachedRecipients = validated;
+      return validated;
     } catch (e) {
-      console.error("Failed to read private recipients file", e);
+      console.error("Failed to read/validate private recipients file", e);
+      if (process.env.NODE_ENV === "production") {
+        throw new Error("Production error: Failed to validate config/recipients.private.json. Failing closed.");
+      }
     }
+  }
+
+  // Fail-closed in production: Never serve fallback demo recipients
+  if (process.env.NODE_ENV === "production") {
+    throw new Error("Production error: No valid recipient configuration available. Failing closed.");
   }
 
   return FALLBACK_RECIPIENTS;
@@ -82,13 +159,17 @@ export async function findRecipientByBirthday(
   const recipients = await getAllRecipients();
 
   for (const recipient of recipients) {
-    // 1. Check if name matches
+    // 1. Enforce accessMode: if INVITE_CODE only, do not allow birthday unlock
+    if (recipient.accessMode === "INVITE_CODE") {
+      continue;
+    }
+
+    // 2. Check if name matches
     if (!isNameMatch(recipient, name)) continue;
 
-    // 2. Verify full birthday match
-    // If recipient's year is null or unverified (like Nhật Lệ), normal birthday match requires verified full DOB
+    // 3. Verify full birthday match
+    // If recipient's year is null or unverified (like Nhật Lệ), standard birthday flow must not match
     if (recipient.birthDate.year === null || year === null) {
-      // Missing year: Cannot match through standard birthday flow if full DOB is unverified
       continue;
     }
 
@@ -113,14 +194,19 @@ export async function findRecipientByInviteCode(
   const inputHash = hashInviteCode(code);
 
   for (const recipient of recipients) {
+    // 1. Enforce accessMode: if BIRTHDAY only, do not allow invite code unlock
+    if (recipient.accessMode === "BIRTHDAY") {
+      continue;
+    }
+
     if (!isNameMatch(recipient, name)) continue;
 
-    // Check invite code
+    // 2. Check invite code hash configured on recipient
     if (recipient.inviteCodeHash && recipient.inviteCodeHash.toLowerCase() === inputHash.toLowerCase()) {
       return recipient;
     }
 
-    // Also support fallback SPECIAL_LEADER_CODE from env for Nhật Lệ
+    // 3. Check fallback SPECIAL_LEADER_CODE from environment for special leader
     if (recipient.cardVariant === "SPECIAL_LEADER" && process.env.SPECIAL_LEADER_CODE) {
       const envLeaderHash = hashInviteCode(process.env.SPECIAL_LEADER_CODE);
       if (envLeaderHash.toLowerCase() === inputHash.toLowerCase()) {

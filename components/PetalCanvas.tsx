@@ -23,7 +23,14 @@ export default function PetalCanvas() {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
+    // A10: Respect prefers-reduced-motion
+    const motionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+    if (motionQuery.matches) {
+      return;
+    }
+
     let animationFrameId: number;
+    let isPaused = false;
     let width = (canvas.width = window.innerWidth);
     let height = (canvas.height = window.innerHeight);
 
@@ -33,7 +40,18 @@ export default function PetalCanvas() {
       height = canvas.height = window.innerHeight;
     };
 
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        isPaused = true;
+        cancelAnimationFrame(animationFrameId);
+      } else {
+        isPaused = false;
+        animationFrameId = requestAnimationFrame(animate);
+      }
+    };
+
     window.addEventListener("resize", handleResize);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
 
     const colors = [
       "#F3DCE4", // Blush Pink
@@ -43,7 +61,7 @@ export default function PetalCanvas() {
       "#BE839A", // Dusty Rose
     ];
 
-    const petalCount = Math.min(30, Math.floor(window.innerWidth / 40));
+    const petalCount = Math.min(25, Math.floor(window.innerWidth / 45));
     const petals: Petal[] = [];
 
     for (let i = 0; i < petalCount; i++) {
@@ -51,12 +69,12 @@ export default function PetalCanvas() {
         x: Math.random() * width,
         y: Math.random() * height,
         size: Math.random() * 8 + 6,
-        speedX: Math.random() * 1 - 0.5,
-        speedY: Math.random() * 0.8 + 0.4,
+        speedX: Math.random() * 0.8 - 0.4,
+        speedY: Math.random() * 0.7 + 0.3,
         rotation: Math.random() * 360,
-        rotationSpeed: (Math.random() - 0.5) * 1.5,
+        rotationSpeed: (Math.random() - 0.5) * 1.2,
         color: colors[Math.floor(Math.random() * colors.length)],
-        opacity: Math.random() * 0.4 + 0.3,
+        opacity: Math.random() * 0.4 + 0.25,
       });
     }
 
@@ -77,6 +95,7 @@ export default function PetalCanvas() {
     };
 
     const animate = () => {
+      if (isPaused) return;
       ctx.clearRect(0, 0, width, height);
 
       for (let i = 0; i < petals.length; i++) {
@@ -102,6 +121,7 @@ export default function PetalCanvas() {
 
     return () => {
       window.removeEventListener("resize", handleResize);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
       cancelAnimationFrame(animationFrameId);
     };
   }, []);
@@ -109,7 +129,7 @@ export default function PetalCanvas() {
   return (
     <canvas
       ref={canvasRef}
-      className="pointer-events-none fixed inset-0 z-10 opacity-70"
+      className="fixed inset-0 pointer-events-none z-10"
       aria-hidden="true"
     />
   );

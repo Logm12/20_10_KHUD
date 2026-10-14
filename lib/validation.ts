@@ -1,5 +1,5 @@
 import crypto from "crypto";
-import { RecipientConfig } from "@/types/recipient";
+import { RecipientConfig } from "../types/recipient";
 
 /**
  * Remove Vietnamese accents and convert to lowercase for alias comparison

@@ -3,6 +3,9 @@ import next from "next";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
+import dotenv from "dotenv";
+
+dotenv.config({ path: ".env.local" });
 
 const recipients = JSON.parse(
   fs.readFileSync(path.join(process.cwd(), "config", "recipients.private.json"), "utf-8")
@@ -74,6 +77,12 @@ async function runE2ETests() {
       }),
     });
     assert.equal(validDobRes.status, 200);
+
+    // Verify Cache-Control is private and no-store (A08)
+    const unlockCacheControl = validDobRes.headers.get("cache-control");
+    assert.ok(unlockCacheControl?.includes("private"), "Cache-Control must be private");
+    assert.ok(unlockCacheControl?.includes("no-store"), "Cache-Control must be no-store");
+
     const validJson = await validDobRes.json();
     assert.equal(validJson.success, true);
     assert.equal(validJson.gift.displayName, g02.displayName);
@@ -86,7 +95,7 @@ async function runE2ETests() {
     assert.ok(setCookieHeader.includes("bloom_session="), "Cookie name is bloom_session");
     assert.ok(setCookieHeader.includes("HttpOnly"), "Cookie is HttpOnly");
     const cookieValue = setCookieHeader.split(";")[0];
-    console.log("   ✅ Correct DOB unlocks gift and issues signed HttpOnly cookie");
+    console.log("   ✅ Correct DOB unlocks gift and issues signed HttpOnly cookie (with private no-store headers)");
 
     // 5. Test GET /api/me/gift with session cookie
     console.log("5. Testing GET /api/me/gift with session cookie...");
@@ -94,9 +103,13 @@ async function runE2ETests() {
       headers: { Cookie: cookieValue },
     });
     assert.equal(meGiftRes.status, 200);
+    const giftCacheControl = meGiftRes.headers.get("cache-control");
+    assert.ok(giftCacheControl?.includes("private"), "Gift Cache-Control must be private");
+    assert.ok(giftCacheControl?.includes("no-store"), "Gift Cache-Control must be no-store");
+
     const meGiftJson = await meGiftRes.json();
     assert.equal(meGiftJson.authenticated, true);
-    assert.equal(meGiftJson.gift.displayName, "Thị Huyền");
+    assert.equal(meGiftJson.gift.displayName, g02.displayName);
     console.log("   ✅ Session allows retrieving opened gift on page reload");
 
     // 6. Test GET /api/me/photo with session cookie
@@ -111,44 +124,55 @@ async function runE2ETests() {
     assert.ok(photoBuffer.byteLength > 1000, "Photo buffer is non-empty");
     console.log(`   ✅ Authorized photo streamed successfully (${photoBuffer.byteLength} bytes)`);
 
-    // 7. Test Special Invite Code for Bùi Nhật Lệ (G01)
-    console.log("7. Testing POST /api/unlock for Bùi Nhật Lệ with invite code...");
-    const leRes = await fetch(`${baseUrl}/api/unlock`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        recipientName: "Nhật Lệ",
-        mode: "INVITE_CODE",
-        inviteCode: "BLOOM-NL2026-KHUD",
-      }),
-    });
-    assert.equal(leRes.status, 200);
-    const leJson = await leRes.json();
-    assert.equal(leJson.success, true);
-    assert.equal(leJson.gift.displayName, "Nhật Lệ");
-    assert.equal(leJson.gift.cardVariant, "SPECIAL_LEADER");
-    assert.equal(leJson.gift.flower, "Cẩm tú cầu");
-    console.log("   ✅ Special Leader unlock succeeds with invite code");
+    // 7. Test Special Invite Code for Bùi Nhật Lệ (G01) from environment
+    if (process.env.SPECIAL_LEADER_CODE) {
+      console.log("7. Testing POST /api/unlock for Bùi Nhật Lệ with invite code from env...");
+      const leRes = await fetch(`${baseUrl}/api/unlock`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          recipientName: g01.displayName,
+          mode: "INVITE_CODE",
+          inviteCode: process.env.SPECIAL_LEADER_CODE,
+        }),
+      });
+      assert.equal(leRes.status, 200);
+      const leJson = await leRes.json();
+      assert.equal(leJson.success, true);
+      assert.equal(leJson.gift.displayName, g01.displayName);
+      assert.equal(leJson.gift.cardVariant, "SPECIAL_LEADER");
+      console.log("   ✅ Special Leader unlock succeeds with valid invite code");
+    }
 
-    // 8. Test Birthday Unlock for Bùi Nhật Lệ
-    console.log("8. Testing POST /api/unlock for Bùi Nhật Lệ with verified birthday...");
+    // 8. Test Birthday Unlock for Bùi Nhật Lệ (A04: must FAIL when year is unverified)
+    console.log("8. Testing POST /api/unlock for Bùi Nhật Lệ with unverified birthday (must fail closed)...");
     const leDobRes = await fetch(`${baseUrl}/api/unlock`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         recipientName: g01.displayName,
         mode: "BIRTHDAY",
-        birthDay: g01.birthDate.day,
-        birthMonth: g01.birthDate.month,
-        birthYear: g01.birthDate.year,
+        birthDay: 29,
+        birthMonth: 1,
+        birthYear: 1998,
       }),
     });
-    assert.equal(leDobRes.status, 200);
+    assert.equal(leDobRes.status, 400);
     const leDobJson = await leDobRes.json();
-    assert.equal(leDobJson.success, true);
-    assert.equal(leDobJson.gift.displayName, g01.displayName);
-    assert.equal(leDobJson.gift.cardVariant, "SPECIAL_LEADER");
-    console.log("   ✅ Bùi Nhật Lệ unlocks successfully with verified birthday");
+    assert.equal(leDobJson.success, false);
+    console.log("   ✅ Bùi Nhật Lệ birthday unlock correctly rejected while year is unverified");
+
+    // 9. Test POST /api/me/reset (A13)
+    console.log("9. Testing POST /api/me/reset clears session cookie...");
+    const resetRes = await fetch(`${baseUrl}/api/me/reset`, {
+      method: "POST",
+      headers: { Cookie: cookieValue },
+    });
+    assert.equal(resetRes.status, 200);
+    const resetCookieHeader = resetRes.headers.get("set-cookie");
+    assert.ok(resetCookieHeader?.includes("bloom_session="), "Reset returns bloom_session cookie header");
+    assert.ok(resetCookieHeader?.includes("Max-Age=0") || resetCookieHeader?.includes("1970"), "Cookie cleared");
+    console.log("   ✅ Server reset successfully clears recipient session cookie");
 
     console.log("\n🎉 ALL E2E INTEGRATION TESTS PASSED PERFECTLY!");
   } finally {

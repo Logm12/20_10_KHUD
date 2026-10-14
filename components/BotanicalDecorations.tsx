@@ -121,6 +121,89 @@ export function SunflowerIllustration({ className = "w-16 h-16" }: { className?:
   );
 }
 
+export function PeonyIllustration({ className = "w-16 h-16" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
+      <g stroke="#BE839A" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M50 95 C 48 75, 52 55, 50 45" stroke="#98B598" strokeWidth="2" />
+        <path d="M49 70 C 35 68, 25 75, 20 80 C 28 84, 40 78, 49 72" fill="#B9CEB9" fillOpacity="0.3" stroke="#98B598" />
+        {/* Outer lush petals */}
+        <circle cx="50" cy="38" r="26" fill="#F3DCE4" fillOpacity="0.5" stroke="#E3BDCB" />
+        <path d="M30 42 C 26 28, 42 20, 50 24 C 58 20, 74 28, 70 42 C 65 56, 35 56, 30 42 Z" fill="#E3BDCB" fillOpacity="0.6" />
+        <path d="M38 36 C 35 28, 45 24, 50 28 C 55 24, 65 28, 62 36 C 58 44, 42 44, 38 36 Z" fill="#BE839A" fillOpacity="0.5" />
+        <circle cx="50" cy="35" r="4" fill="#D4AF37" fillOpacity="0.7" />
+      </g>
+    </svg>
+  );
+}
+
+export function OrchidIllustration({ className = "w-16 h-16" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
+      <g stroke="#BE839A" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M50 95 C 48 65, 52 45, 50 25" stroke="#98B598" strokeWidth="1.8" />
+        {/* Orchid upper sepal */}
+        <ellipse cx="50" cy="24" rx="8" ry="14" fill="#FFFDFB" stroke="#D9C7F2" strokeWidth="1" />
+        {/* Lateral petals */}
+        <ellipse cx="34" cy="36" rx="13" ry="9" transform="rotate(-20 34 36)" fill="#FFFDFB" stroke="#D9C7F2" strokeWidth="1" />
+        <ellipse cx="66" cy="36" rx="13" ry="9" transform="rotate(20 66 36)" fill="#FFFDFB" stroke="#D9C7F2" strokeWidth="1" />
+        {/* Lower lip (labellum) */}
+        <path d="M44 40 C 40 50, 46 56, 50 56 C 54 56, 60 50, 56 40 C 53 44, 47 44, 44 40 Z" fill="#F3DCE4" stroke="#BE839A" />
+        <circle cx="50" cy="42" r="2.5" fill="#D4AF37" />
+      </g>
+    </svg>
+  );
+}
+
+export function BabysBreathIllustration({ className = "w-16 h-16" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
+      <g stroke="#98B598" strokeWidth="1.3" strokeLinecap="round">
+        <path d="M50 95 C 50 70, 50 50, 50 35" />
+        <path d="M50 65 C 40 55, 32 45, 25 38" />
+        <path d="M50 55 C 60 48, 68 40, 75 32" />
+        <path d="M25 38 C 20 32, 18 25, 16 20" />
+        <path d="M25 38 C 28 30, 30 24, 32 18" />
+        <path d="M75 32 C 72 24, 70 18, 68 14" />
+        <path d="M75 32 C 80 26, 84 22, 88 18" />
+        <path d="M50 35 C 46 26, 44 20, 42 14" />
+        <path d="M50 35 C 54 26, 56 20, 58 14" />
+      </g>
+      {/* Tiny white clouds/blossoms */}
+      <g fill="#FFFDFB" stroke="#BE839A" strokeWidth="0.8">
+        <circle cx="16" cy="20" r="3.5" />
+        <circle cx="32" cy="18" r="3.5" />
+        <circle cx="42" cy="14" r="3.5" />
+        <circle cx="58" cy="14" r="3.5" />
+        <circle cx="68" cy="14" r="3.5" />
+        <circle cx="88" cy="18" r="3.5" />
+        <circle cx="28" cy="34" r="3" />
+        <circle cx="70" cy="28" r="3" />
+        <circle cx="50" cy="26" r="3.2" />
+      </g>
+    </svg>
+  );
+}
+
+export function CherryBlossomIllustration({ className = "w-16 h-16" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
+      <g stroke="#BE839A" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M50 95 C 48 70, 52 50, 50 42" stroke="#98B598" strokeWidth="2" />
+        {/* 5 Petals with characteristic notch */}
+        <ellipse cx="50" cy="22" rx="7" ry="11" fill="#F3DCE4" fillOpacity="0.7" />
+        <ellipse cx="69" cy="35" rx="7" ry="11" transform="rotate(72 69 35)" fill="#F3DCE4" fillOpacity="0.7" />
+        <ellipse cx="62" cy="58" rx="7" ry="11" transform="rotate(144 62 58)" fill="#F3DCE4" fillOpacity="0.7" />
+        <ellipse cx="38" cy="58" rx="7" ry="11" transform="rotate(216 38 58)" fill="#F3DCE4" fillOpacity="0.7" />
+        <ellipse cx="31" cy="35" rx="7" ry="11" transform="rotate(288 31 35)" fill="#F3DCE4" fillOpacity="0.7" />
+        {/* Pistils / stamens */}
+        <circle cx="50" cy="42" r="5" fill="#E3BDCB" />
+        <circle cx="50" cy="42" r="2" fill="#D4AF37" />
+      </g>
+    </svg>
+  );
+}
+
 export function WaxSeal({ variant = "STANDARD" }: { variant?: "STANDARD" | "SPECIAL_LEADER" }) {
   const isSpecial = variant === "SPECIAL_LEADER";
   return (

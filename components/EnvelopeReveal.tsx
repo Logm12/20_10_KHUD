@@ -1,10 +1,22 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import confetti from "canvas-confetti";
 import { Copy, Check, RotateCcw, Sparkles, Heart, Crown } from "lucide-react";
 import { RecipientPublicGift } from "@/types/recipient";
-import { WaxSeal, HydrangeaIllustration, RoseIllustration, DaisyIllustration, LavenderIllustration, TulipIllustration, SunflowerIllustration } from "./BotanicalDecorations";
+import {
+  WaxSeal,
+  HydrangeaIllustration,
+  RoseIllustration,
+  DaisyIllustration,
+  LavenderIllustration,
+  TulipIllustration,
+  SunflowerIllustration,
+  PeonyIllustration,
+  OrchidIllustration,
+  BabysBreathIllustration,
+  CherryBlossomIllustration,
+} from "./BotanicalDecorations";
 
 interface EnvelopeRevealProps {
   gift: RecipientPublicGift;
@@ -19,11 +31,25 @@ export default function EnvelopeReveal({ gift, onReset }: EnvelopeRevealProps) {
   // 3: Flap Opening
   // 4: Letter Rising & Reveal
   const [animStep, setAnimStep] = useState<number>(0);
-  const [copied, setCopied] = useState<boolean>(false);
+  const [copyStatus, setCopyStatus] = useState<"idle" | "success" | "error">("idle");
   const [photoError, setPhotoError] = useState<boolean>(false);
+  const timeoutsRef = useRef<NodeJS.Timeout[]>([]);
   const isSpecialLeader = gift.cardVariant === "SPECIAL_LEADER";
 
+  const clearAllTimeouts = () => {
+    timeoutsRef.current.forEach((t) => clearTimeout(t));
+    timeoutsRef.current = [];
+  };
+
+  const isReducedMotion = () => {
+    return (
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    );
+  };
+
   const triggerConfetti = () => {
+    if (isReducedMotion()) return;
     try {
       const colors = isSpecialLeader
         ? ["#D4AF37", "#F7E7CE", "#B76E79", "#FFF9F5"]
@@ -34,53 +60,81 @@ export default function EnvelopeReveal({ gift, onReset }: EnvelopeRevealProps) {
         spread: 60,
         origin: { y: 0.6 },
         colors,
-        ticks: 200,
+        ticks: 180,
         gravity: 0.8,
         scalar: 1.1,
       });
     } catch {
-      // safe fallback if confetti fails
+      // safe fallback
     }
   };
 
-  const startAnimation = React.useCallback(() => {
+  const startAnimation = useCallback(() => {
+    clearAllTimeouts();
+
+    // A10: If prefers-reduced-motion is active, reveal letter immediately without animations
+    if (isReducedMotion()) {
+      setAnimStep(4);
+      return;
+    }
+
     setAnimStep(1); // Wobble
 
-    setTimeout(() => {
+    const t1 = setTimeout(() => {
       setAnimStep(2); // Seal Glow
-    }, 700);
+    }, 600);
 
-    setTimeout(() => {
+    const t2 = setTimeout(() => {
       setAnimStep(3); // Flap Open
       triggerConfetti();
-    }, 1400);
+    }, 1200);
 
-    setTimeout(() => {
+    const t3 = setTimeout(() => {
       setAnimStep(4); // Letter Rises
-    }, 2200);
+    }, 1900);
+
+    timeoutsRef.current = [t1, t2, t3];
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gift.id, isSpecialLeader]);
 
   useEffect(() => {
     startAnimation();
+    return () => clearAllTimeouts();
   }, [startAnimation]);
 
-  const handleCopyGreeting = () => {
+  // A12: Robust async clipboard copy with promise handling and error feedback
+  const handleCopyGreeting = async () => {
     const textToCopy = `${gift.shortGreeting}\n\n${gift.letter}\n\n— With love, from Liên chi đoàn Khoa Các Khoa học Ứng dụng (20/10/2026)`;
-    navigator.clipboard.writeText(textToCopy);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2500);
+    try {
+      if (!navigator.clipboard || !navigator.clipboard.writeText) {
+        throw new Error("Clipboard API is not supported on this device");
+      }
+      await navigator.clipboard.writeText(textToCopy);
+      setCopyStatus("success");
+      const t = setTimeout(() => setCopyStatus("idle"), 2500);
+      timeoutsRef.current.push(t);
+    } catch (err) {
+      console.warn("Clipboard write failed:", err);
+      setCopyStatus("error");
+      const t = setTimeout(() => setCopyStatus("idle"), 3000);
+      timeoutsRef.current.push(t);
+    }
   };
 
+  // A15: Complete mapping for all 10 botanical flower illustrations
   const renderFlowerIllustration = () => {
-    const flowerLower = gift.flower.toLowerCase();
+    const flowerLower = (gift.flower || "").toLowerCase();
     if (flowerLower.includes("cẩm tú cầu")) return <HydrangeaIllustration className="w-20 h-20" />;
+    if (flowerLower.includes("mẫu đơn")) return <PeonyIllustration className="w-20 h-20" />;
+    if (flowerLower.includes("lan")) return <OrchidIllustration className="w-20 h-20" />;
+    if (flowerLower.includes("baby")) return <BabysBreathIllustration className="w-20 h-20" />;
+    if (flowerLower.includes("anh đào")) return <CherryBlossomIllustration className="w-20 h-20" />;
     if (flowerLower.includes("hồng")) return <RoseIllustration className="w-20 h-20" />;
     if (flowerLower.includes("cúc")) return <DaisyIllustration className="w-20 h-20" />;
     if (flowerLower.includes("lavender") || flowerLower.includes("oải hương")) return <LavenderIllustration className="w-20 h-20" />;
     if (flowerLower.includes("tulip")) return <TulipIllustration className="w-20 h-20" />;
     if (flowerLower.includes("hướng dương")) return <SunflowerIllustration className="w-20 h-20" />;
-    return <RoseIllustration className="w-20 h-20" />;
+    return <PeonyIllustration className="w-20 h-20" />;
   };
 
   return (
@@ -89,7 +143,7 @@ export default function EnvelopeReveal({ gift, onReset }: EnvelopeRevealProps) {
       {animStep < 4 && (
         <div className="flex flex-col items-center justify-center min-h-[420px] transition-all duration-500">
           <div
-            className={`relative w-72 sm:w-88 h-48 sm:h-56 rounded-2xl transition-all duration-500 flex items-center justify-center ${
+            className={`relative w-72 sm:w-[22rem] h-48 sm:h-56 rounded-2xl transition-all duration-500 flex items-center justify-center ${
               isSpecialLeader
                 ? "bg-gradient-to-br from-gold-champagne via-ivory to-blush border-2 border-gold-warm shadow-gold"
                 : "bg-gradient-to-br from-blush/60 via-ivory to-lavender/40 border border-dusty/30 shadow-letter"
@@ -125,7 +179,7 @@ export default function EnvelopeReveal({ gift, onReset }: EnvelopeRevealProps) {
       {/* 2. Unveiled Personalized Gift Card (animStep === 4) */}
       {animStep === 4 && (
         <div
-          className={`relative rounded-3xl p-6 sm:p-10 transition-all duration-700 animate-in fade-in slide-in-from-bottom-8 ${
+          className={`relative rounded-3xl p-6 sm:p-10 transition-all duration-700 animate-letter-reveal ${
             isSpecialLeader
               ? "bg-gradient-to-b from-ivory via-gold-light/30 to-blush/20 gold-border shadow-gold"
               : "bg-ivory vintage-border shadow-letter"
@@ -168,8 +222,16 @@ export default function EnvelopeReveal({ gift, onReset }: EnvelopeRevealProps) {
                     onError={() => setPhotoError(true)}
                   />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center bg-blush/30">
-                    {renderFlowerIllustration()}
+                  /* A02: When photo is missing/inaccessible, clearly indicate status */
+                  <div
+                    className="w-full h-full flex flex-col items-center justify-center bg-blush/20 p-2 text-center select-none"
+                    role="status"
+                    aria-label="Ảnh riêng tư đang cập nhật"
+                  >
+                    <Sparkles className="w-6 h-6 text-dusty/60 mb-1" />
+                    <span className="text-[11px] text-plum/70 font-sans leading-tight">
+                      Ảnh riêng tư đang cập nhật
+                    </span>
                   </div>
                 )}
               </div>
@@ -204,18 +266,23 @@ export default function EnvelopeReveal({ gift, onReset }: EnvelopeRevealProps) {
             </div>
           </div>
 
-          {/* Flower Symbolism Meaning */}
-          <div className="py-4 my-2 px-4 rounded-xl bg-blush/20 border border-blush text-center sm:text-left">
-            <span className="text-xs font-semibold text-dusty-dark uppercase tracking-wider block mb-0.5">
-              Ý nghĩa loài hoa
-            </span>
-            <p className="text-xs sm:text-sm text-plum/80 italic font-serif">
-              {gift.meaning}
-            </p>
+          {/* Flower Symbolism Meaning with Illustrated Icon */}
+          <div className="py-4 my-4 px-4 rounded-xl bg-blush/20 border border-blush flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left">
+            <div className="flex-shrink-0">
+              {renderFlowerIllustration()}
+            </div>
+            <div>
+              <span className="text-xs font-semibold text-dusty-dark uppercase tracking-wider block mb-0.5">
+                Ý nghĩa loài hoa ({gift.flower})
+              </span>
+              <p className="text-xs sm:text-sm text-plum/80 italic font-serif">
+                {gift.meaning}
+              </p>
+            </div>
           </div>
 
           {/* Short Greeting Quote */}
-          <div className="my-5 p-4 rounded-2xl bg-ivory-200 border-l-4 border-dusty text-plum font-serif italic text-sm sm:text-base leading-relaxed">
+          <div className="my-5 p-4 rounded-2xl bg-ivory-200 border-l-4 border-dusty-deep text-plum font-serif italic text-sm sm:text-base leading-relaxed">
             &ldquo;{gift.shortGreeting}&rdquo;
           </div>
 
@@ -238,17 +305,21 @@ export default function EnvelopeReveal({ gift, onReset }: EnvelopeRevealProps) {
               </div>
             </div>
 
-            {/* Action Buttons: Copy Greeting & Replay Animation */}
+            {/* Action Buttons: Copy Greeting & Replay Animation & Switch User */}
             <div className="flex items-center gap-2">
               <button
                 onClick={handleCopyGreeting}
                 className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-ivory border border-dusty/30 hover:bg-blush/30 text-plum text-xs font-medium shadow-sm transition-all"
                 title="Sao chép lời chúc"
               >
-                {copied ? (
+                {copyStatus === "success" ? (
                   <>
                     <Check className="w-3.5 h-3.5 text-sage-dark" />
                     <span className="text-sage-dark font-semibold">Đã chép!</span>
+                  </>
+                ) : copyStatus === "error" ? (
+                  <>
+                    <span className="text-dusty font-medium">Không thể chép tự động</span>
                   </>
                 ) : (
                   <>
@@ -270,7 +341,7 @@ export default function EnvelopeReveal({ gift, onReset }: EnvelopeRevealProps) {
               <button
                 onClick={onReset}
                 className="inline-flex items-center px-3 py-2 rounded-xl text-plum/60 hover:text-plum text-xs transition-colors"
-                title="Nhập người khác"
+                title="Đổi người nhận khác và xóa phiên"
               >
                 Đổi người
               </button>

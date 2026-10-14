@@ -40,6 +40,8 @@ const config: Config = {
           light: "#D8AAB9",
           DEFAULT: "#BE839A",
           dark: "#A36980",
+          deep: "#783A52",
+          deeper: "#5C283C",
         },
         gold: {
           light: "#FDF8ED",

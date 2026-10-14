@@ -14,8 +14,22 @@ function getContentType(filename: string): string {
   return "image/jpeg";
 }
 
+function isAllowedStorageHost(urlStr: string): boolean {
+  try {
+    const url = new URL(urlStr);
+    // Allowlist official Vercel Blob storage domains
+    return (
+      url.protocol === "https:" &&
+      (url.hostname.endsWith(".blob.vercel-storage.com") ||
+        url.hostname === "blob.vercel-storage.com")
+    );
+  } catch {
+    return false;
+  }
+}
+
 /**
- * Safely retrieves recipient's photo from Vercel Blob or local private storage
+ * Safely retrieves recipient's photo from Vercel Private Blob or local private storage
  */
 export async function getPhotoForRecipient(recipientId: string): Promise<PhotoResult | null> {
   const recipient = await getRecipientById(recipientId);
@@ -23,25 +37,46 @@ export async function getPhotoForRecipient(recipientId: string): Promise<PhotoRe
 
   // 1. Check if configured with remote Vercel Blob URL
   if (recipient.photoBlobPath && recipient.photoBlobPath.startsWith("http")) {
+    if (!isAllowedStorageHost(recipient.photoBlobPath)) {
+      console.error(`Blocked photo request to untrusted storage host: ${recipient.photoBlobPath}`);
+      return null;
+    }
+
     try {
       const headers: HeadersInit = {};
       if (process.env.BLOB_READ_WRITE_TOKEN) {
         headers["Authorization"] = `Bearer ${process.env.BLOB_READ_WRITE_TOKEN}`;
       }
-      const res = await fetch(recipient.photoBlobPath, { headers });
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 6000);
+
+      const res = await fetch(recipient.photoBlobPath, {
+        headers,
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+
       if (res.ok) {
         const arrayBuffer = await res.arrayBuffer();
-        return {
-          buffer: Buffer.from(arrayBuffer),
-          contentType: res.headers.get("content-type") || getContentType(recipient.photoBlobPath),
-        };
+        const buffer = Buffer.from(arrayBuffer);
+        if (buffer.length > 50) {
+          const rawContentType = res.headers.get("content-type") || getContentType(recipient.photoBlobPath);
+          const safeContentType = rawContentType.startsWith("image/") ? rawContentType : "image/jpeg";
+          return {
+            buffer,
+            contentType: safeContentType,
+          };
+        }
+      } else {
+        console.warn(`Remote photo storage returned status ${res.status} for recipient ${recipientId}`);
       }
     } catch (e) {
-      console.error("Failed to fetch photo from Blob path", e);
+      console.error(`Failed to fetch photo from remote storage for ${recipientId}:`, e);
     }
   }
 
-  // 2. Check local secure private storage (e.g. girl_image / private_photos in server environment)
+  // 2. Check local secure private storage (girl_image / girl_photo)
   if (recipient.photoLocalFile) {
     const candidateDirs = [
       path.join(process.cwd(), "girl_image"),
@@ -54,12 +89,14 @@ export async function getPhotoForRecipient(recipientId: string): Promise<PhotoRe
       if (fs.existsSync(localFilePath)) {
         try {
           const buffer = fs.readFileSync(localFilePath);
-          return {
-            buffer,
-            contentType: getContentType(recipient.photoLocalFile),
-          };
+          if (buffer.length > 50) {
+            return {
+              buffer,
+              contentType: getContentType(recipient.photoLocalFile),
+            };
+          }
         } catch (e) {
-          console.error("Failed to read local photo file", e);
+          console.error(`Failed to read local photo file for ${recipientId}:`, e);
         }
       }
     }
