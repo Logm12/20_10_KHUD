@@ -43,3 +43,6 @@ next-env.d.ts
 # OS Files
 .DS_Store
 Thumbs.db
+
+.vercel
+.env*
