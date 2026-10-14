@@ -80,6 +80,9 @@ export async function getPhotoForRecipient(recipientId: string): Promise<PhotoRe
   if (recipient.photoLocalFile) {
     const candidateDirs = [
       path.join(process.cwd(), "girl_image"),
+      path.resolve("girl_image"),
+      path.join(__dirname, "..", "..", "..", "girl_image"),
+      path.join(__dirname, "..", "..", "girl_image"),
       path.join(process.cwd(), "girl_photo"),
       path.join(process.cwd(), "private_photos"),
     ];
