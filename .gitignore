@@ -1,0 +1,45 @@
+# Dependencies
+/node_modules
+/.pnp
+.pnp.js
+.yarn/install-state.gz
+
+# Next.js build
+/.next/
+/out/
+
+# Production
+/build
+
+# Debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Local environment & secrets (NEVER COMMIT SENSITIVE DATA)
+.env*.local
+.env.production
+.env.development
+.env
+!.env.example
+
+# Local personal assets & internal materials
+/girl_image/
+/girl_photo/
+/private_photos/
+/optimized_photos/
+*.private.*
+
+# Large agent skills directory (local development only)
+/my-skills/
+
+# Vercel
+.vercel
+
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts
+
+# OS Files
+.DS_Store
+Thumbs.db

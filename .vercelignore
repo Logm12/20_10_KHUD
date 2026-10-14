@@ -1,0 +1,10 @@
+# Ignore local developer directories on Vercel deployment
+girl_image
+girl_photo
+private_photos
+optimized_photos
+my-skills
+.git
+.github
+tests
+README.md
