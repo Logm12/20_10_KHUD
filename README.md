@@ -217,6 +217,10 @@ vercel login
 vercel --prod
 ```
 
+### 10.3. Production URL Chính Thức
+- **Website Production:** [https://2010-silk.vercel.app](https://2010-silk.vercel.app)
+- **Deployment Aliases:** [https://2010-9yk3e2qdu-longs-projects-7968d89a.vercel.app](https://2010-9yk3e2qdu-longs-projects-7968d89a.vercel.app)
+
 ---
 
 ## 11. Kiến Trúc Bảo Mật & Quyền Riêng Tư
