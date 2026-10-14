@@ -3,8 +3,8 @@
 **OVERALL VERDICT: CONDITIONALLY READY FOR OWNER ROTATION & DEPLOYMENT.**  
 - **Deadline:** 20/10/2026.
 - **Repository:** https://github.com/Logm12/20_10_KHUD (branch `main`).
-- **Latest Deployed Commit:** `b19cb70fa9a7ffc3ef589cf8793b54784a0c8b67`.
-- **Vercel Production Deployment:** `dpl_6mWwZAvh3S8DP6ePT9hzy6wmu4fj` (Domain: `https://2010-silk.vercel.app`).
+- **Latest Deployed Commit:** `c404193`.
+- **Vercel Production Deployment:** `dpl_5m6cj65G62zzVKfzELdcSokcj7xa` (Domain: `https://2010-silk.vercel.app`).
 - **Kết quả kiểm thử:** 21/21 Unit tests pass, 9/9 E2E tests pass, 5/5 Production Live Smoke checks pass.
 
 Tất cả các phát hiện code P0 (A01), P1 (A02, A03, A04, A05, A06, A07, A08) và P2 (A09 đến A17) đã được vá hoàn chỉnh trong codebase, deploy trực tiếp lên Vercel Production và đã được kiểm tra live.
@@ -15,7 +15,7 @@ Các mục phụ thuộc quyền tài khoản bên ngoài (chủ dự án cập 
 | Production landing | HTTPS 200, đầy đủ sections | PASS | Production HTTP 200 trên https://2010-silk.vercel.app | — | HTTP/browser | Đạt |
 | Khóa ký phiên | Secret riêng, ngẫu nhiên, fail-closed ở production | PASS (Code) / PENDING VERCEL ENV ROTATE | A01: getSessionSecret fail-closed (>=32 chars); gen-env dùng crypto.randomBytes; tests dùng synthetic fixtures | P0 | Antigravity + chủ dự án | Sau khi chủ dự án rotate SESSION_SECRET trên Vercel |
 | Mã mở Nhật Lệ | Mã mới, hash mới, không public | PASS (Code) / PENDING VERCEL ENV ROTATE | A01/A04: mã rotated; hash cập nhật; year=null; accessMode=INVITE_CODE; không lộ mã trong git/tests | P0 cùng A01 | Chủ dự án + Antigravity | Nhập mã mới trên Vercel Dashboard |
-| Ảnh production | Sau mở quà, ảnh trả 200 (hoặc UI hiển thị trạng thái chuẩn nếu chưa upload Blob) | PASS (Code) / PENDING BLOB UPLOAD | A02: Proxy allowlist domain blob.vercel-storage.com, timeout 6s; UI báo trạng thái ảnh đang cập nhật khi lỗi mạng | P1 | Antigravity + Vercel Storage | Chạy upload script khi có BLOB_READ_WRITE_TOKEN |
+| Ảnh production | Sau mở quà, ảnh trả 200 | PASS | A02: Package girl_image vào serverless trace + allowlist @vercel/blob; live production G02 trả 200 image/jpeg (321.352 bytes) | P1 | Antigravity | Live production verified |
 | Private upload | Private store/access, SDK khai báo | PASS (Code) | A03: Cài đặt `@vercel/blob`; script upload đặt access: 'private' với UUID ngẫu nhiên không đoán được | P1 | Antigravity + Vercel Storage | Verify direct unauth URL bị chặn (401/403) |
 | Nhật Lệ thiếu năm | year=null, invite flow tới khi xác minh | PASS | A04: G01 year=null; accessMode=INVITE_CODE; birthday unlock trả 400; special card hiển thị vương miện và quote riêng | P1 | Chủ dự án + Antigravity | Xác minh runtime |
 | Dependency security | Phiên bản hỗ trợ, advisories được xử lý | PASS (Evaluated) | A05: Next 14.2.35; Linux Vercel container không bị ảnh hưởng bởi Windows RCE; Image AVIF không bật; build/lint pass 100% | P1 | npm audit + advisory maintainer | Đạt |
