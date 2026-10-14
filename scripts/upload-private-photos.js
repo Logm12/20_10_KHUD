@@ -57,11 +57,26 @@ async function uploadPrivatePhotos() {
 
     let localPath = null;
     for (const dir of candidateDirs) {
-      const p = path.join(dir, r.photoLocalFile);
-      if (fs.existsSync(p)) {
-        localPath = p;
-        break;
+      if (!fs.existsSync(dir)) continue;
+      const files = fs.readdirSync(dir);
+      // Direct or normalized match
+      const normNFC = r.photoLocalFile.normalize('NFC').toLowerCase();
+      const normNFD = r.photoLocalFile.normalize('NFD').toLowerCase();
+      const cleanTarget = r.photoLocalFile.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+
+      for (const f of files) {
+        if (
+          f === r.photoLocalFile ||
+          f.normalize('NFC').toLowerCase() === normNFC ||
+          f.normalize('NFD').toLowerCase() === normNFD ||
+          f.replace(/[^a-zA-Z0-9]/g, '').toLowerCase() === cleanTarget ||
+          f.toLowerCase().startsWith(r.id.toLowerCase())
+        ) {
+          localPath = path.join(dir, f);
+          break;
+        }
       }
+      if (localPath) break;
     }
 
     if (!localPath) {

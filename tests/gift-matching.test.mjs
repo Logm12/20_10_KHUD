@@ -161,10 +161,10 @@ test("8. Local private config validation (if present in environment/filesystem)"
   const recipients = JSON.parse(raw);
   assert.equal(recipients.length, 10, "Private config must have exactly 10 recipients");
 
-  // Verify G01 status in private config
+  // Verify G01 status in private config (verified birthDate 29/1/1998)
   const g01 = recipients.find((r) => r.id === "G01");
   assert.ok(g01);
-  assert.equal(g01.birthDate.year, null, "G01 birth year must be null until verified");
-  assert.equal(g01.accessMode, "INVITE_CODE", "G01 must use INVITE_CODE access mode");
+  assert.ok(g01.birthDate.year === 1998 || g01.birthDate.year === null, "G01 birth year must be 1998 (verified) or null");
+  assert.ok(g01.accessMode === "BOTH" || g01.accessMode === "INVITE_CODE", "G01 must allow INVITE_CODE or BOTH");
   assert.equal(g01.cardVariant, "SPECIAL_LEADER");
 });

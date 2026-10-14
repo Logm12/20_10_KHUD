@@ -5,6 +5,8 @@ const nextConfig = {
   experimental: {
     outputFileTracingIncludes: {
       "/api/me/photo": ["./girl_image/**/*"],
+      "/api/**/*": ["./girl_image/**/*"],
+      "/**/*": ["./girl_image/**/*"],
     },
   },
   async headers() {
