@@ -26,6 +26,11 @@ export const MUSIC_PLAYLIST: MusicTrack[] = [
     title: "Chăm Hoa",
     src: "/music/cham-hoa.m4a",
   },
+  {
+    id: "undertale",
+    title: "Undertale",
+    src: "/music/undertale.m4a",
+  },
 ];
 
 /**
