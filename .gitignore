@@ -28,6 +28,7 @@ yarn-error.log*
 /girl_photo/
 /private_photos/
 /optimized_photos/
+/music/
 *.private.*
 
 # Large agent skills directory (local development only)
