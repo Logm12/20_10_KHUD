@@ -21,6 +21,11 @@ export const MUSIC_PLAYLIST: MusicTrack[] = [
     title: "Em Sẽ Rạng Ngời Nhé",
     src: "/music/em-se-rang-ngoi-nhe.m4a",
   },
+  {
+    id: "cham-hoa",
+    title: "Chăm Hoa",
+    src: "/music/cham-hoa.m4a",
+  },
 ];
 
 /**
