@@ -185,14 +185,34 @@ export default function IntroExperience({
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [active, stage, errorMessage, playBlocked]);
 
-  // Track fullscreen changes
+  // Track fullscreen changes across standard and WebKit browsers
   useEffect(() => {
     const handleFullscreenChange = () => {
-      setIsFullscreen(Boolean(document.fullscreenElement));
+      const doc = document as Document & {
+        webkitFullscreenElement?: Element;
+        mozFullScreenElement?: Element;
+        msFullscreenElement?: Element;
+      };
+      const isFs = Boolean(
+        doc.fullscreenElement ||
+          doc.webkitFullscreenElement ||
+          doc.mozFullScreenElement ||
+          doc.msFullscreenElement
+      );
+      setIsFullscreen(isFs);
     };
+
     document.addEventListener("fullscreenchange", handleFullscreenChange);
-    return () =>
+    document.addEventListener("webkitfullscreenchange", handleFullscreenChange);
+    document.addEventListener("mozfullscreenchange", handleFullscreenChange);
+    document.addEventListener("MSFullscreenChange", handleFullscreenChange);
+
+    return () => {
       document.removeEventListener("fullscreenchange", handleFullscreenChange);
+      document.removeEventListener("webkitfullscreenchange", handleFullscreenChange);
+      document.removeEventListener("mozfullscreenchange", handleFullscreenChange);
+      document.removeEventListener("MSFullscreenChange", handleFullscreenChange);
+    };
   }, []);
 
   // Initiate video playback directly inside user gesture
@@ -329,7 +349,11 @@ export default function IntroExperience({
       role="dialog"
       aria-modal="true"
       aria-label="Lời nhắn mở đầu The Secret Bloom"
-      className={`fixed inset-0 z-50 flex items-center justify-center bg-ivory/95 backdrop-blur-md p-3 sm:p-6 transition-opacity ${
+      className={`fixed inset-0 z-50 flex items-center justify-center transition-opacity ${
+        isFullscreen
+          ? "p-0 bg-black"
+          : "p-3 sm:p-6 bg-ivory/95 backdrop-blur-md"
+      } ${
         prefersReducedMotion ? "" : "duration-300"
       } ${stage === "exiting" ? "opacity-0 pointer-events-none" : "opacity-100"}`}
     >
@@ -407,16 +431,38 @@ export default function IntroExperience({
       {/* Stage 2: Video Player Container (mounted with preload="none" so user gesture play() works directly) */}
       <div
         ref={videoContainerRef}
-        className={`relative z-10 w-full max-w-4xl flex flex-col items-center ${
-          stage === "video" ? "block" : "hidden"
-        }`}
+        className={`relative z-10 w-full flex flex-col items-center ${
+          isFullscreen
+            ? "fixed inset-0 z-50 w-screen h-screen max-w-none max-h-none rounded-none bg-black p-0 m-0 justify-between"
+            : "max-w-4xl"
+        } ${stage === "video" ? "block" : "hidden"}`}
       >
-        <div className="relative w-full rounded-2xl sm:rounded-3xl overflow-hidden bg-plum-dark/95 border border-dusty/30 shadow-letter flex flex-col">
+        <div
+          className={`relative w-full flex flex-col ${
+            isFullscreen
+              ? "h-full w-full rounded-none border-0 bg-black shadow-none justify-between"
+              : "rounded-2xl sm:rounded-3xl overflow-hidden bg-plum-dark/95 border border-dusty/30 shadow-letter"
+          }`}
+        >
           {/* Top Bar inside Video Frame */}
-          <div className="flex items-center justify-between px-3.5 py-2.5 sm:px-5 sm:py-3 bg-ivory/95 border-b border-dusty/20 text-plum">
+          <div
+            className={`flex items-center justify-between transition-colors ${
+              isFullscreen
+                ? "px-4 py-3 sm:px-6 sm:py-3.5 bg-gradient-to-b from-black/80 via-black/40 to-transparent text-white border-0 z-20"
+                : "px-3.5 py-2.5 sm:px-5 sm:py-3 bg-ivory/95 border-b border-dusty/20 text-plum"
+            }`}
+          >
             <div className="flex items-center gap-2 min-w-0">
-              <Sparkles className="w-4 h-4 text-dusty-deep shrink-0" />
-              <span className="font-serif text-xs sm:text-sm font-semibold truncate">
+              <Sparkles
+                className={`w-4 h-4 shrink-0 ${
+                  isFullscreen ? "text-blush" : "text-dusty-deep"
+                }`}
+              />
+              <span
+                className={`font-serif text-xs sm:text-sm font-semibold truncate ${
+                  isFullscreen ? "text-white drop-shadow" : "text-plum"
+                }`}
+              >
                 Lời nhắn mở đầu — The Secret Bloom
               </span>
             </div>
@@ -426,7 +472,11 @@ export default function IntroExperience({
                 type="button"
                 onClick={finishIntro}
                 aria-label="Bỏ qua, vào khu vườn"
-                className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-blush/70 hover:bg-blush text-plum text-xs font-medium border border-dusty/30 transition-colors focus:outline-none focus:ring-2 focus:ring-dusty/40"
+                className={`shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors focus:outline-none focus:ring-2 ${
+                  isFullscreen
+                    ? "bg-white/20 hover:bg-white/30 text-white border border-white/30 backdrop-blur-sm focus:ring-white/50"
+                    : "bg-blush/70 hover:bg-blush text-plum border border-dusty/30 focus:ring-dusty/40"
+                }`}
               >
                 <span>Bỏ qua, vào khu vườn</span>
                 <ArrowRight className="w-3.5 h-3.5" />
@@ -434,8 +484,14 @@ export default function IntroExperience({
             )}
           </div>
 
-          {/* Video Viewport — object-contain preserves full aspect ratio (16:9 or 9:16) without cropping */}
-          <div className="relative w-full bg-black flex items-center justify-center min-h-[220px] sm:min-h-[360px] max-h-[72vh]">
+          {/* Video Viewport — in fullscreen mode takes all available height/width; otherwise max-h-[72vh] */}
+          <div
+            className={`relative w-full bg-black flex items-center justify-center overflow-hidden ${
+              isFullscreen
+                ? "flex-1 h-full min-h-0 max-h-none"
+                : "min-h-[220px] sm:min-h-[360px] max-h-[72vh]"
+            }`}
+          >
             <video
               ref={videoRef}
               preload="none"
@@ -499,7 +555,9 @@ export default function IntroExperience({
                   "Không thể tải hoặc phát video mở đầu. Bạn có thể bấm Thử lại hoặc vào thẳng khu vườn nhé."
                 );
               }}
-              className="w-full h-full max-h-[72vh] object-contain cursor-pointer"
+              className={`w-full h-full object-contain cursor-pointer ${
+                isFullscreen ? "max-h-full max-w-full" : "max-h-[72vh]"
+              }`}
             >
               {config.captionsUrl && (
                 <track
@@ -517,7 +575,7 @@ export default function IntroExperience({
               <div
                 role="status"
                 aria-live="polite"
-                className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center bg-black/45 text-ivory gap-2 p-4 text-center"
+                className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center bg-black/45 text-ivory gap-2 p-4 text-center z-30"
               >
                 <Loader2 className="w-8 h-8 animate-spin text-blush" />
                 <span className="text-xs sm:text-sm font-medium">
@@ -528,7 +586,7 @@ export default function IntroExperience({
 
             {/* Direct Play Fallback Button when play() is rejected by browser policy */}
             {playBlocked && !errorMessage && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 p-4 text-center gap-3">
+              <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 p-4 text-center gap-3 z-30">
                 <p className="text-xs sm:text-sm text-ivory/90 max-w-xs">
                   Trình duyệt cần bạn xác nhận thêm một lần để phát video có âm
                   thanh.
@@ -548,7 +606,7 @@ export default function IntroExperience({
             {errorMessage && (
               <div
                 role="alert"
-                className="absolute inset-0 flex flex-col items-center justify-center bg-plum-dark/90 p-5 text-center gap-4 text-ivory"
+                className="absolute inset-0 flex flex-col items-center justify-center bg-plum-dark/90 p-5 text-center gap-4 text-ivory z-30"
               >
                 <AlertCircle className="w-8 h-8 text-blush shrink-0" />
                 <p className="text-xs sm:text-sm max-w-md leading-relaxed">
@@ -577,14 +635,24 @@ export default function IntroExperience({
           </div>
 
           {/* Bottom Controls Bar */}
-          <div className="flex flex-wrap items-center justify-between gap-2 px-3.5 py-2.5 sm:px-5 sm:py-3 bg-ivory/95 border-t border-dusty/20 text-plum">
+          <div
+            className={`flex flex-wrap items-center justify-between gap-2 transition-colors ${
+              isFullscreen
+                ? "px-4 py-3 sm:px-6 sm:py-3.5 bg-gradient-to-t from-black/85 via-black/50 to-transparent text-white border-0 z-20"
+                : "px-3.5 py-2.5 sm:px-5 sm:py-3 bg-ivory/95 border-t border-dusty/20 text-plum"
+            }`}
+          >
             <div className="flex items-center gap-2 sm:gap-3">
               {/* Play / Pause */}
               <button
                 type="button"
                 onClick={toggleVideoPlayPause}
                 aria-label={isPlaying ? "Tạm dừng video" : "Phát video"}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-dusty-deep hover:bg-dusty-deeper text-ivory text-xs font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-dusty/50"
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium transition-colors focus:outline-none focus:ring-2 ${
+                  isFullscreen
+                    ? "bg-white/20 hover:bg-white/30 text-white backdrop-blur-sm focus:ring-white/40"
+                    : "bg-dusty-deep hover:bg-dusty-deeper text-ivory focus:ring-dusty/50"
+                }`}
               >
                 {isPlaying ? (
                   <>
@@ -593,7 +661,11 @@ export default function IntroExperience({
                   </>
                 ) : (
                   <>
-                    <Play className="w-3.5 h-3.5 fill-ivory" />
+                    <Play
+                      className={`w-3.5 h-3.5 ${
+                        isFullscreen ? "fill-white" : "fill-ivory"
+                      }`}
+                    />
                     <span>Phát</span>
                   </>
                 )}
@@ -605,12 +677,20 @@ export default function IntroExperience({
                   type="button"
                   onClick={toggleMute}
                   aria-label={isMuted ? "Bật tiếng video" : "Tắt tiếng video"}
-                  className="p-1.5 rounded-lg text-plum/80 hover:text-plum hover:bg-blush/50 transition-colors focus:outline-none focus:ring-2 focus:ring-dusty/40"
+                  className={`p-1.5 rounded-lg transition-colors focus:outline-none focus:ring-2 ${
+                    isFullscreen
+                      ? "text-white/90 hover:text-white hover:bg-white/20 focus:ring-white/40"
+                      : "text-plum/80 hover:text-plum hover:bg-blush/50 focus:ring-dusty/40"
+                  }`}
                 >
                   {isMuted || volume === 0 ? (
-                    <VolumeX className="w-4 h-4 text-dusty-deep" />
+                    <VolumeX
+                      className={`w-4 h-4 ${
+                        isFullscreen ? "text-blush" : "text-dusty-deep"
+                      }`}
+                    />
                   ) : (
-                    <Volume2 className="w-4 h-4 text-plum" />
+                    <Volume2 className="w-4 h-4" />
                   )}
                 </button>
                 <input
@@ -621,7 +701,9 @@ export default function IntroExperience({
                   value={isMuted ? 0 : volume}
                   onChange={handleVolumeChange}
                   aria-label="Âm lượng video"
-                  className="w-16 sm:w-24 accent-dusty-deep cursor-pointer"
+                  className={`w-16 sm:w-28 cursor-pointer ${
+                    isFullscreen ? "accent-blush" : "accent-dusty-deep"
+                  }`}
                 />
               </div>
             </div>
@@ -635,7 +717,11 @@ export default function IntroExperience({
                   isFullscreen ? "Thoát toàn màn hình" : "Xem toàn màn hình"
                 }
                 title={isFullscreen ? "Thoát toàn màn hình" : "Toàn màn hình"}
-                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs text-plum/80 hover:text-plum hover:bg-blush/50 transition-colors focus:outline-none focus:ring-2 focus:ring-dusty/40"
+                className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs transition-colors focus:outline-none focus:ring-2 ${
+                  isFullscreen
+                    ? "text-white hover:bg-white/20 focus:ring-white/40"
+                    : "text-plum/80 hover:text-plum hover:bg-blush/50 focus:ring-dusty/40"
+                }`}
               >
                 {isFullscreen ? (
                   <>

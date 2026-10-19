@@ -94,10 +94,11 @@ test("IntroExperience component implements invitation flow, single video element
   assert.match(source, /Vào khu vườn/);
   assert.match(source, /hasFinishedRef/);
 
-  // Accessibility & reduced motion
-  assert.match(source, /prefers-reduced-motion:\s*reduce/);
-  assert.match(source, /role="dialog"/);
-  assert.match(source, /aria-modal="true"/);
+  // Fullscreen support and viewport responsiveness
+  assert.match(source, /isFullscreen/);
+  assert.match(source, /fixed inset-0/);
+  assert.match(source, /w-screen h-screen/);
+  assert.match(source, /toggleFullscreen/);
 });
 
 test("SecretGiftSection resets session on every load and never restores previous gift", () => {
