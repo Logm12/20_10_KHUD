@@ -3,6 +3,10 @@ girl_photo
 private_photos
 optimized_photos
 /music/
+/video/
+*.mp4
+*.mov
+*.webm
 my-skills
 .git
 .github

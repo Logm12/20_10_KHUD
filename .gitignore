@@ -29,6 +29,10 @@ yarn-error.log*
 /private_photos/
 /optimized_photos/
 /music/
+/video/
+*.mp4
+*.mov
+*.webm
 *.private.*
 
 # Large agent skills directory (local development only)

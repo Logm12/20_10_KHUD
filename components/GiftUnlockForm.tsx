@@ -1,14 +1,31 @@
 "use client";
 
 import React, { useState } from "react";
-import { Sparkles, KeyRound, Calendar, Loader2, AlertCircle } from "lucide-react";
+import {
+  Sparkles,
+  KeyRound,
+  Calendar,
+  Loader2,
+  AlertCircle,
+  RotateCcw,
+} from "lucide-react";
 import { RecipientPublicGift } from "@/types/recipient";
 
 interface GiftUnlockFormProps {
   onUnlockSuccess: (gift: RecipientPublicGift) => void;
+  isSessionReady?: boolean;
+  isSessionResetting?: boolean;
+  sessionResetError?: boolean;
+  onRetrySessionReset?: () => void;
 }
 
-export default function GiftUnlockForm({ onUnlockSuccess }: GiftUnlockFormProps) {
+export default function GiftUnlockForm({
+  onUnlockSuccess,
+  isSessionReady = true,
+  isSessionResetting = false,
+  sessionResetError = false,
+  onRetrySessionReset,
+}: GiftUnlockFormProps) {
   const [recipientName, setRecipientName] = useState("");
   const [mode, setMode] = useState<"BIRTHDAY" | "INVITE_CODE">("BIRTHDAY");
   const [birthDay, setBirthDay] = useState("");
@@ -21,6 +38,16 @@ export default function GiftUnlockForm({ onUnlockSuccess }: GiftUnlockFormProps)
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage("");
+
+    // Only allow unlocking after initial session reset has succeeded
+    if (!isSessionReady || isSessionResetting || sessionResetError) {
+      if (sessionResetError) {
+        setErrorMessage(
+          "Phiên bảo mật chưa sẵn sàng. Bạn vui lòng bấm Thử lại làm mới phiên trước khi mở quà nhé!"
+        );
+      }
+      return;
+    }
 
     if (!recipientName.trim()) {
       setErrorMessage("Bạn hãy nhập tên để phong thư tìm đúng người nhé!");
@@ -75,21 +102,29 @@ export default function GiftUnlockForm({ onUnlockSuccess }: GiftUnlockFormProps)
         );
       }
     } catch {
-      setErrorMessage("Không thể kết nối đến máy chủ. Bạn vui lòng thử lại sau giây lát nhé!");
+      setErrorMessage(
+        "Không thể kết nối đến máy chủ. Bạn vui lòng thử lại sau giây lát nhé!"
+      );
     } finally {
       setIsLoading(false);
     }
   };
+
+  const isFormBusy = isLoading || isSessionResetting;
 
   return (
     <form
       onSubmit={handleSubmit}
       className="bg-ivory-100 rounded-2xl p-5 sm:p-8 vintage-border shadow-letter max-w-lg mx-auto space-y-6"
       noValidate={false}
-      aria-busy={isLoading}
+      aria-busy={isFormBusy}
     >
       {/* Mode selection tabs */}
-      <div className="flex rounded-xl bg-blush/40 p-1 border border-blush" role="tablist" aria-label="Hình thức mở phong thư">
+      <div
+        className="flex rounded-xl bg-blush/40 p-1 border border-blush"
+        role="tablist"
+        aria-label="Hình thức mở phong thư"
+      >
         <button
           type="button"
           role="tab"
@@ -129,7 +164,10 @@ export default function GiftUnlockForm({ onUnlockSuccess }: GiftUnlockFormProps)
 
       {/* Recipient Name Input */}
       <div className="space-y-1.5 text-left">
-        <label htmlFor="recipient-name" className="block text-xs font-semibold text-plum tracking-wider uppercase">
+        <label
+          htmlFor="recipient-name"
+          className="block text-xs font-semibold text-plum tracking-wider uppercase"
+        >
           Tên hiển thị của bạn
         </label>
         <input
@@ -139,7 +177,7 @@ export default function GiftUnlockForm({ onUnlockSuccess }: GiftUnlockFormProps)
           onChange={(e) => setRecipientName(e.target.value)}
           placeholder="Ví dụ: Thị Huyền, Ánh Dương, Nhật Lệ..."
           className="w-full px-4 py-3 rounded-xl bg-ivory border border-dusty/30 text-plum placeholder-plum/40 focus:outline-none focus:ring-2 focus:ring-dusty/40 focus:border-dusty transition-all text-sm"
-          disabled={isLoading}
+          disabled={isFormBusy}
           aria-required="true"
           aria-invalid={Boolean(errorMessage)}
           aria-describedby={errorMessage ? "form-error" : undefined}
@@ -167,7 +205,7 @@ export default function GiftUnlockForm({ onUnlockSuccess }: GiftUnlockFormProps)
                 value={birthDay}
                 onChange={(e) => setBirthDay(e.target.value)}
                 className="w-full px-2 sm:px-3 py-3 rounded-xl bg-ivory border border-dusty/30 text-plum focus:outline-none focus:ring-2 focus:ring-dusty/40 text-xs sm:text-sm"
-                disabled={isLoading}
+                disabled={isFormBusy}
                 aria-required="true"
                 required
               >
@@ -190,7 +228,7 @@ export default function GiftUnlockForm({ onUnlockSuccess }: GiftUnlockFormProps)
                 value={birthMonth}
                 onChange={(e) => setBirthMonth(e.target.value)}
                 className="w-full px-1.5 sm:px-3 py-3 rounded-xl bg-ivory border border-dusty/30 text-plum focus:outline-none focus:ring-2 focus:ring-dusty/40 text-xs sm:text-sm"
-                disabled={isLoading}
+                disabled={isFormBusy}
                 aria-required="true"
                 required
               >
@@ -217,7 +255,7 @@ export default function GiftUnlockForm({ onUnlockSuccess }: GiftUnlockFormProps)
                 min="1990"
                 max="2015"
                 className="w-full px-2 sm:px-3 py-3 rounded-xl bg-ivory border border-dusty/30 text-plum placeholder-plum/40 focus:outline-none focus:ring-2 focus:ring-dusty/40 text-xs sm:text-sm"
-                disabled={isLoading}
+                disabled={isFormBusy}
                 aria-required="true"
                 required
               />
@@ -227,7 +265,10 @@ export default function GiftUnlockForm({ onUnlockSuccess }: GiftUnlockFormProps)
       ) : (
         /* Invite Code Input */
         <div className="space-y-1.5 text-left">
-          <label htmlFor="invite-code" className="block text-xs font-semibold text-plum tracking-wider uppercase">
+          <label
+            htmlFor="invite-code"
+            className="block text-xs font-semibold text-plum tracking-wider uppercase"
+          >
             Mã mở thư bí mật
           </label>
           <input
@@ -237,7 +278,7 @@ export default function GiftUnlockForm({ onUnlockSuccess }: GiftUnlockFormProps)
             onChange={(e) => setInviteCode(e.target.value)}
             placeholder="Nhập mã mở thư được gửi riêng..."
             className="w-full px-4 py-3 rounded-xl bg-ivory border border-dusty/30 text-plum placeholder-plum/40 focus:outline-none focus:ring-2 focus:ring-dusty/40 font-mono text-sm tracking-wider uppercase"
-            disabled={isLoading}
+            disabled={isFormBusy}
             aria-required="true"
             aria-invalid={Boolean(errorMessage)}
             aria-describedby={errorMessage ? "form-error" : undefined}
@@ -249,7 +290,34 @@ export default function GiftUnlockForm({ onUnlockSuccess }: GiftUnlockFormProps)
         </div>
       )}
 
-      {/* Error Message Alert (A07) */}
+      {/* Session Reset Error Alert with Retry button */}
+      {sessionResetError && (
+        <div
+          role="alert"
+          aria-live="polite"
+          className="p-3.5 rounded-xl bg-blush/70 border border-dusty/40 text-plum-dark text-xs flex items-center justify-between gap-3 text-left"
+        >
+          <div className="flex items-start gap-2">
+            <AlertCircle className="w-4 h-4 text-dusty-deep flex-shrink-0 mt-0.5" />
+            <span>
+              Chưa thể làm mới phiên bảo mật. Bạn vui lòng bấm Thử lại để bắt
+              đầu mở quà nhé.
+            </span>
+          </div>
+          {onRetrySessionReset && (
+            <button
+              type="button"
+              onClick={onRetrySessionReset}
+              className="shrink-0 inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-ivory text-plum font-medium text-xs border border-dusty/30 hover:bg-blush-light transition-colors focus:outline-none focus:ring-2 focus:ring-dusty/40"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span>Thử lại</span>
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Validation / Unlock Error Message Alert (A07) */}
       {errorMessage && (
         <div
           id="form-error"
@@ -265,13 +333,18 @@ export default function GiftUnlockForm({ onUnlockSuccess }: GiftUnlockFormProps)
       {/* Submit Button with WCAG AA compliant contrast (>= 4.5:1) */}
       <button
         type="submit"
-        disabled={isLoading}
+        disabled={isLoading || !isSessionReady || sessionResetError}
         className="w-full py-3.5 px-6 rounded-xl bg-dusty-deep hover:bg-dusty-deeper text-ivory font-medium shadow-vintage transition-all duration-300 flex items-center justify-center gap-2 transform hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-60 disabled:pointer-events-none"
       >
         {isLoading ? (
           <>
             <Loader2 className="w-4 h-4 animate-spin text-ivory" />
             <span>Đang tìm phong thư của bạn...</span>
+          </>
+        ) : isSessionResetting ? (
+          <>
+            <Loader2 className="w-4 h-4 animate-spin text-ivory" />
+            <span>Đang chuẩn bị phong thư...</span>
           </>
         ) : (
           <>
