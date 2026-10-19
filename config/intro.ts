@@ -29,8 +29,13 @@ export interface IntroConfig {
  * 3. Đổi `enabled: true` (hoặc đặt NEXT_PUBLIC_INTRO_ENABLED="true").
  */
 export const INTRO_CONFIG: IntroConfig = {
-  enabled: process.env.NEXT_PUBLIC_INTRO_ENABLED === "true" ? true : false,
-  videoUrl: process.env.NEXT_PUBLIC_INTRO_VIDEO_URL || "",
+  enabled:
+    process.env.NEXT_PUBLIC_INTRO_ENABLED === "false"
+      ? false
+      : true,
+  videoUrl:
+    process.env.NEXT_PUBLIC_INTRO_VIDEO_URL ||
+    "https://djwwq8t6znwblubj.public.blob.vercel-storage.com/intro/KHUD_20_10.mp4",
   posterUrl: process.env.NEXT_PUBLIC_INTRO_POSTER_URL || "",
   allowSkip: true,
   captionsUrl: process.env.NEXT_PUBLIC_INTRO_CAPTIONS_URL || "",

@@ -10,14 +10,18 @@ import {
 } from "../config/intro.ts";
 import { inspectMp4File } from "../scripts/upload-intro-video.js";
 
-test("Intro config defaults to disabled and empty videoUrl before video is provided", () => {
-  assert.equal(INTRO_CONFIG.enabled, false, "INTRO_CONFIG.enabled must default to false");
-  assert.equal(INTRO_CONFIG.videoUrl, "", "INTRO_CONFIG.videoUrl must default to empty string");
+test("Intro config is enabled and points to public Vercel Blob video", () => {
+  assert.equal(INTRO_CONFIG.enabled, true, "INTRO_CONFIG.enabled must be true");
+  assert.equal(
+    INTRO_CONFIG.videoUrl,
+    "https://djwwq8t6znwblubj.public.blob.vercel-storage.com/intro/KHUD_20_10.mp4",
+    "INTRO_CONFIG.videoUrl must match the public blob video URL"
+  );
   assert.equal(INTRO_CONFIG.allowSkip, true, "INTRO_CONFIG.allowSkip must default to true");
   assert.equal(
     isIntroActive(INTRO_CONFIG),
-    false,
-    "isIntroActive(INTRO_CONFIG) must be false when disabled or videoUrl is empty"
+    true,
+    "isIntroActive(INTRO_CONFIG) must be true when enabled and valid videoUrl is present"
   );
 });
 
